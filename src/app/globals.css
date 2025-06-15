@@ -24,3 +24,89 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Micro-interaction animations */
+@keyframes bell-shake {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
+
+@keyframes settings-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes wallet-bounce {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes wallet-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.bell-hover:hover .bell-icon {
+  animation: bell-shake 0.6s ease-in-out;
+}
+
+.settings-hover:hover .settings-icon {
+  animation: settings-spin 0.8s ease-in-out;
+}
+
+.wallet-hover:hover {
+  animation: wallet-pulse 0.8s ease-in-out;
+}
+
+.wallet-hover:hover .wallet-icon {
+  animation: wallet-bounce 0.6s ease-in-out;
+}
+
+/* Sidebar option text slide effect */
+.sidebar-option .sidebar-content {
+  transition: transform 0.3s ease-in-out;
+}
+
+.sidebar-option:hover .sidebar-content {
+  transform: translateX(8px);
+}
+
+/* Modal reveal animations */
+@keyframes modal-reveal {
+  0% {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+  20% {
+    clip-path: inset(0 0 95% 0);
+    opacity: 0.3;
+  }
+  100% {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+}
+
+@keyframes modal-hide {
+  0% {
+    clip-path: inset(0 0 0% 0);
+    opacity: 1;
+  }
+  80% {
+    clip-path: inset(0 0 95% 0);
+    opacity: 0.3;
+  }
+  100% {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+}
+
+.modal-reveal {
+  animation: modal-reveal 0.6s ease-out forwards;
+}
+
+.modal-hide {
+  animation: modal-hide 0.4s ease-in forwards;
+}
