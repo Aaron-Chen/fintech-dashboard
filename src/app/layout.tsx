@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MdNotificationsNone, MdSettings, MdAttachMoney, MdAutoGraph, MdDescription, MdStars, MdAccountBalanceWallet, MdLogout, MdClose, MdEmail, MdArrowForward } from "react-icons/md";
 import { FaGoogle } from "react-icons/fa";
+import DashboardPage from "./page";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,63 +31,62 @@ export default function RootLayout({
 }: RootLayoutProps) {
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isModalClosing, setIsModalClosing] = useState(false);
-  const [activeTitle, setActiveTitle] = useState("Dashboard");
-  const [displayTitle, setDisplayTitle] = useState("Dashboard");
-  const [isAnimating, setIsAnimating] = useState(false);
-  const [showLoadingVideo, setShowLoadingVideo] = useState(true);
+  const [showLoadingVideo, setShowLoadingVideo] = useState(false);
   const [isVideoFading, setIsVideoFading] = useState(false);
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const pathname = usePathname();
 
-  const scrambleText = (finalText: string) => {
-    if (isAnimating) return;
-    
-    setIsAnimating(true);
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    const iterations = 15;
-    let iteration = 0;
-    
+  // Debug: Log wallet connection state every 2 seconds
+  useEffect(() => {
     const interval = setInterval(() => {
-      setDisplayTitle(prev => 
-        finalText
-          .split("")
-          .map((letter, index) => {
-            if (index < iteration) {
-              return finalText[index];
-            }
-            return chars[Math.floor(Math.random() * chars.length)];
-          })
-          .join("")
-      );
-      
-      if (iteration >= finalText.length) {
-        clearInterval(interval);
-        setDisplayTitle(finalText);
-        setIsAnimating(false);
-      }
-      
-      iteration += 1 / 2;
-    }, 50);
+      console.log(`Wallet Connected State: ${isWalletConnected}`);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [isWalletConnected]);
+
+  // Map routes to titles
+  const routeTitleMap: { [key: string]: string } = {
+    '/': 'Dashboard',
+    '/strategies': 'Strategies',
+    '/docs': 'Docs',
+    '/points': 'Points'
   };
 
-  const handleTitleChange = (newTitle: string) => {
-    if (newTitle !== activeTitle && !isAnimating) {
-      setActiveTitle(newTitle);
-      scrambleText(newTitle);
-    }
-  };
+  const currentTitle = routeTitleMap[pathname] || 'Dashboard';
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalClosing(true);
     setTimeout(() => {
       setIsWalletModalOpen(false);
       setIsModalClosing(false);
     }, 400); // Match the animation duration
-  };
+  }, []);
+
+  const handleMetaMaskConnect = useCallback(() => {
+    // Close the modal immediately
+    setIsWalletModalOpen(false);
+    setIsModalClosing(false);
+    
+    // Set wallet as connected directly based on user interaction
+    setIsWalletConnected(true);
+    
+    // Show loading video for visual feedback
+    setShowLoadingVideo(true);
+  }, []);
 
   const handleVideoEnd = () => {
     setIsVideoFading(true);
     setTimeout(() => {
       setShowLoadingVideo(false);
+      setIsVideoFading(false);
+      setIsWalletConnected(true);
     }, 500); // Fade duration
+  };
+
+  const handleWalletDisconnect = () => {
+    // Implement the logic to disconnect the wallet
+    setIsWalletConnected(false);
   };
 
   return (
@@ -92,7 +94,7 @@ export default function RootLayout({
       <head>
         <link href="https://fonts.googleapis.com/css2?family=Jura:wght@700&display=swap" rel="stylesheet" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#1A1A20]`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#1A1A20]`} suppressHydrationWarning={true}>
         <div className="flex min-h-screen w-full">
           {/* Sidebar */}
           <aside className="w-[300px] bg-white/10 backdrop-blur-lg border-r border-r-white border-r-[1px] h-screen sticky top-0 z-20 flex flex-col items-center pt-8 shadow-[4px_0_16px_0_rgba(255,255,255,0.3)]">
@@ -105,40 +107,44 @@ export default function RootLayout({
             </div>
             {/* Sidebar navigation */}
             <nav className="flex flex-col gap-4 w-full mt-8 px-8" style={{ fontFamily: 'Jura, sans-serif' }}>
-              <button onClick={() => handleTitleChange("Dashboard")} className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${activeTitle === "Dashboard" ? "bg-gray-600/20" : ""}`}>
+              <Link href="/" className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${currentTitle === "Dashboard" ? "bg-gray-600/20" : ""}`}>
                 <div className="sidebar-content flex items-center gap-5">
-                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdAttachMoney size={28} /></span>
+                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdAttachMoney size={32} /></span>
                   Dashboard
                 </div>
-              </button>
-              <button onClick={() => handleTitleChange("Strategies")} className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${activeTitle === "Strategies" ? "bg-gray-600/20" : ""}`}>
+              </Link>
+              <Link href="/strategies" className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${currentTitle === "Strategies" ? "bg-gray-600/20" : ""}`}>
                 <div className="sidebar-content flex items-center gap-5">
-                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdAutoGraph size={28} /></span>
+                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdAutoGraph size={32} /></span>
                   Strategies
                 </div>
-              </button>
-              <button onClick={() => handleTitleChange("Docs")} className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${activeTitle === "Docs" ? "bg-gray-600/20" : ""}`}>
+              </Link>
+              <Link href="/docs" className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${currentTitle === "Docs" ? "bg-gray-600/20" : ""}`}>
                 <div className="sidebar-content flex items-center gap-5">
-                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdDescription size={28} /></span>
+                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdDescription size={32} /></span>
                   Docs
                 </div>
-              </button>
-              <button onClick={() => handleTitleChange("Points")} className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${activeTitle === "Points" ? "bg-gray-600/20" : ""}`}>
+              </Link>
+              <Link href="/points" className={`sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 ${currentTitle === "Points" ? "bg-gray-600/20" : ""}`}>
                 <div className="sidebar-content flex items-center gap-5">
-                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdStars size={28} /></span>
+                  <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdStars size={32} /></span>
                   Points
                 </div>
-              </button>
+              </Link>
             </nav>
             
             {/* Log out at the bottom */}
             <div className="mt-auto mb-8 w-full px-8">
-              <a href="#" className="sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4" style={{ fontFamily: 'Jura, sans-serif' }}>
+              <button 
+                onClick={handleWalletDisconnect}
+                className="sidebar-option flex items-center gap-5 text-white text-2xl font-semibold hover:bg-gray-600/30 rounded-lg px-4 py-4 transition-all duration-300 ease-in-out -mx-4 w-full" 
+                style={{ fontFamily: 'Jura, sans-serif' }}
+              >
                 <div className="sidebar-content flex items-center gap-5">
                   <span className="inline-flex justify-center items-center" style={{ width: 36 }}><MdLogout size={28} /></span>
                   Log out
                 </div>
-              </a>
+              </button>
             </div>
           </aside>
           {/* Main content area */}
@@ -146,9 +152,9 @@ export default function RootLayout({
             {/* Top bar */}
             <header className="h-[107px] w-full bg-black border-b border-b-white border-b-[1px] flex items-center px-8 sticky top-0 z-10 justify-between shadow-[0_4px_16px_0_rgba(255,255,255,0.3)]">
               {/* Left: Dashboard text */}
-              <span className="text-white text-4xl font-extralight flex items-center h-full" style={{ fontFamily: 'Jura, sans-serif', fontWeight: 200 }}>{displayTitle}</span>
+              <span className="text-white text-4xl font-extralight flex items-center h-full" style={{ fontFamily: 'Jura, sans-serif', fontWeight: 200 }}>{currentTitle}</span>
               {/* Right: Notification, Settings, and Wallet Button */}
-              <div className="flex items-center gap-8 pr-2">
+              <div className="flex items-center gap-8 pr-0">
                 {/* Notification Icon */}
                 <button className="w-[44px] h-[44px] flex items-center justify-center text-white hover:bg-white/10 rounded-full transition bell-hover">
                   <MdNotificationsNone size={36} className="bell-icon" />
@@ -159,18 +165,18 @@ export default function RootLayout({
                 </button>
                 {/* Wallet Button (Figma style) */}
                 <button 
-                  onClick={() => setIsWalletModalOpen(true)}
+                  onClick={() => isWalletConnected ? handleWalletDisconnect() : setIsWalletModalOpen(true)}
                   className="flex items-center gap-8 px-8 py-4 rounded-[20px] bg-white/10 border border-white/20 backdrop-blur-md text-white font-semibold text-xl shadow-lg hover:bg-white/20 transition wallet-hover"
                 >
                   <MdAccountBalanceWallet size={32} className="wallet-icon" />
-                  Connect to Wallet
+                  {isWalletConnected ? 'Wallet Connected' : 'Connect to Wallet'}
                 </button>
               </div>
             </header>
             <main className="flex-1 p-8 w-full relative">
               {/* Loading Video */}
               {showLoadingVideo && (
-                <div className={`absolute inset-0 flex items-center justify-center bg-black z-10 transition-opacity duration-500 ${isVideoFading ? 'opacity-0' : 'opacity-100'}`}>
+                <div className={`absolute inset-0 flex items-center justify-center bg-black z-50 transition-opacity duration-500 ${isVideoFading ? 'opacity-0' : 'opacity-100'}`}>
                   <video
                     autoPlay
                     muted
@@ -178,11 +184,19 @@ export default function RootLayout({
                     onEnded={handleVideoEnd}
                     className="w-96 h-96 object-contain"
                   >
-                    <source src="/loading-sequence.mp4" type="video/mp4" />
+                    <source src="/loading-animation.mp4" type="video/mp4" />
                   </video>
                 </div>
               )}
-              {children}
+              {pathname === '/' ? (
+                <DashboardPage 
+                  onWalletModalOpen={() => setIsWalletModalOpen(true)}
+                  showLoadingVideo={showLoadingVideo}
+                  isWalletConnected={isWalletConnected}
+                />
+              ) : (
+                children
+              )}
             </main>
           </div>
         </div>
@@ -214,7 +228,7 @@ export default function RootLayout({
                     alt="Axal Logo" 
                     width={128} 
                     height={128} 
-                    className="object-contain"
+                    className="object-contain transform -rotate-2"
                   />
                 </div>
                 <p className="text-white/80 text-lg" style={{ fontFamily: 'Jura, sans-serif' }}>
@@ -225,7 +239,10 @@ export default function RootLayout({
               {/* Connection Options */}
               <div className="space-y-4">
                 {/* MetaMask */}
-                <button className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition group">
+                <button 
+                  onClick={handleMetaMaskConnect}
+                  className="w-full flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 transition group"
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
                       <Image 
